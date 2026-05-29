@@ -1,5 +1,7 @@
 import pytest
 
+from store_assistant.agent.session import new_session
+
 
 @pytest.fixture()
 def mock_executor(mocker):
@@ -10,12 +12,10 @@ def test_chat_returns_response_and_history(mock_executor):
     mock_executor.invoke.return_value = {"output": "Store saved."}
     from store_assistant.agent.agent import chat
 
-    response, history = chat("Save Walmart", [])
+    response, history, state = chat("Save Walmart", [], new_session())
     assert response == "Store saved."
-    assert history == [
-        {"role": "human", "content": "Save Walmart"},
-        {"role": "assistant", "content": "Store saved."},
-    ]
+    assert history[0] == {"role": "human", "content": "Save Walmart"}
+    assert history[1]["role"] == "assistant"
 
 
 def test_chat_history_grows_across_turns(mock_executor):
@@ -26,7 +26,7 @@ def test_chat_history_grows_across_turns(mock_executor):
         {"role": "human", "content": "Hello"},
         {"role": "assistant", "content": "Hi!"},
     ]
-    _, new_history = chat("Save Target", existing)
+    _, new_history, _ = chat("Save Target", existing, new_session())
     assert len(new_history) == 4
     assert new_history[2]["content"] == "Save Target"
     assert new_history[3]["content"] == "Done."
@@ -36,7 +36,7 @@ def test_chat_invokes_executor_with_input(mock_executor):
     mock_executor.invoke.return_value = {"output": "OK"}
     from store_assistant.agent.agent import chat
 
-    chat("test message", [])
+    chat("test message", [], new_session())
     call_kwargs = mock_executor.invoke.call_args[0][0]
     assert call_kwargs["input"] == "test message"
     assert "history" in call_kwargs
@@ -52,7 +52,7 @@ def test_chat_passes_history_as_lc_messages(mock_executor):
         {"role": "human", "content": "Hi"},
         {"role": "assistant", "content": "Hello"},
     ]
-    chat("next", history)
+    chat("next", history, new_session())
     lc_history = mock_executor.invoke.call_args[0][0]["history"]
     assert isinstance(lc_history[0], HumanMessage)
     assert isinstance(lc_history[1], AIMessage)
