@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 
 from store_assistant.agent.prompts import FAREWELL_SENTINEL, OFF_TOPIC_SENTINEL, prompt_template
 from store_assistant.agent.session import SessionState
+from store_assistant.agent.summary import generate_and_save_summary
 from store_assistant.agent.tools import retrieve_store, save_store
 
 SESSION_ENDED_MSG = "This session has ended. Please refresh to start a new conversation."
@@ -79,7 +80,6 @@ def chat(
     _update_state(response_text, state)
 
     if state.terminated:
-        from store_assistant.agent.summary import generate_and_save_summary
         summary_text = generate_and_save_summary(history, state)
         response_text = _clean_response(response_text) + f"\n\n**Session Summary:** {summary_text}"
     else:

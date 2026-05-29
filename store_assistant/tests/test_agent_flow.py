@@ -56,3 +56,55 @@ def test_chat_passes_history_as_lc_messages(mock_executor):
     lc_history = mock_executor.invoke.call_args[0][0]["history"]
     assert isinstance(lc_history[0], HumanMessage)
     assert isinstance(lc_history[1], AIMessage)
+
+
+def test_summary_called_on_farewell_termination(mocker, tmp_path):
+    from store_assistant.agent.prompts import FAREWELL_SENTINEL
+
+    mock_exec = mocker.patch("store_assistant.agent.agent.agent_executor")
+    mock_exec.invoke.return_value = {"output": f"{FAREWELL_SENTINEL} Goodbye!"}
+
+    mock_summary = mocker.patch("store_assistant.agent.agent.generate_and_save_summary")
+    mock_summary.return_value = "User saved Walmart and retrieved its phone number."
+
+    from store_assistant.agent.agent import chat
+
+    state = new_session()
+    response, _, returned_state = chat("I'm done", [], state)
+
+    assert returned_state.terminated is True
+    assert returned_state.termination_reason == "farewell"
+    mock_summary.assert_called_once()
+    assert "User saved Walmart" in response
+
+
+def test_summary_saved_to_db_on_termination(mocker, tmp_path):
+    import sqlite3
+
+    from store_assistant.agent.prompts import FAREWELL_SENTINEL
+    from store_assistant.db.database import init_db
+
+    db_path = str(tmp_path / "test.db")
+    init_db(db_path)
+    mocker.patch("store_assistant.db.database.config.store_db_path", db_path)
+    mocker.patch("store_assistant.agent.summary.config.store_db_path", db_path)
+
+    mock_exec = mocker.patch("store_assistant.agent.agent.agent_executor")
+    mock_exec.invoke.return_value = {"output": f"{FAREWELL_SENTINEL} Goodbye!"}
+
+    mock_llm = mocker.patch("store_assistant.agent.summary._summary_llm")
+    mock_llm.invoke.return_value.content = "Test summary text."
+
+    from store_assistant.agent.agent import chat
+
+    state = new_session()
+    chat("I'm done", [], state)
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT summary_text FROM conversation_summaries WHERE session_id=?",
+            (state.session_id,),
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] == "Test summary text."
