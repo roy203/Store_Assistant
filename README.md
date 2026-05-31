@@ -1,27 +1,6 @@
-<div align="center">
-  <div>
-    <a href="https://strandsagents.com">
-      <img src="https://strandsagents.com/latest/assets/logo-github.svg" alt="Strands Agents" width="55px" height="105px">
-    </a>
-  </div>
+# Store Assistant
 
-  <h1>Agent SOP</h1>
-  <h2>Natural language workflows that enable AI agents to perform complex, multi-step tasks with consistency and reliability.</h2>
-
-  <div align="center">
-    <a href="https://pypi.org/project/strands-agents-sops/"><img alt="PyPI" src="https://img.shields.io/pypi/v/strands-agents-sops"/></a>
-    <a href="https://github.com/strands-agents/agent-sop/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/strands-agents/agent-sop"/></a>
-  </div>
-  
-  <p>
-    <a href="https://strandsagents.com/">Documentation</a>
-    ◆ <a href="https://github.com/strands-agents/sdk-python">Python SDK</a>
-    ◆ <a href="https://github.com/strands-agents/tools">Tools</a>
-    ◆ <a href="https://github.com/strands-agents/samples">Samples</a>
-    ◆ <a href="https://github.com/strands-agents/mcp-server">MCP Server</a>
-    ◆ <a href="https://github.com/strands-agents/agent-builder">Agent Builder</a>
-  </p>
-</div>
+A conversational LLM-based agent that saves and retrieves store information — built as a take-home challenge using Python, LangChain, SQLite, Gradio, and LangSmith.
 
 # Agent SOPs
 
