@@ -1,605 +1,157 @@
 # Store Assistant
 
-A conversational LLM-based agent that saves and retrieves store information — built as a take-home challenge using Python, LangChain, SQLite, Gradio, and LangSmith.
+A conversational LLM-based agent that saves and retrieves store information.  
+Built with Python · LangChain · GPT-4o-mini · SQLite · Gradio · LangSmith.
 
-# Agent SOPs
+---
 
-Agent SOPs (Standard Operating Procedures) are markdown-based instruction sets that guide AI agents through sophisticated workflows using natural language, parameterized inputs, and constraint-based execution. They transform complex processes into reusable, shareable workflows that work across different AI systems and teams.
+## Features
 
-*Lovingly nicknamed "Strands Operating Procedures" by the team.*
+- **Save stores** — provide a store name and US phone number; validates format and reprompts on invalid input
+- **Look up stores** — retrieve a store's phone number by name, gated behind a passphrase
+- **Multi-operation sessions** — save and look up as many stores as you want in one conversation
+- **Session termination** — ends gracefully on "I'm done" / "I'm good", or after 3 consecutive off-topic messages
+- **Conversation summary** — automatically generates and persists a concise summary to SQLite when the session ends
+- **LangSmith tracing** — all LLM calls are traced for inspection in the LangSmith dashboard
+- **Gradio UI** — browser-based chat interface running locally
 
-## What are Agent SOPs?
+---
 
-Agent SOPs use a standardized format to define:
-- **Clear objectives** with detailed overviews
-- **Parameterized inputs** for flexible reuse across different contexts
-- **Step-by-step instructions** with RFC 2119 constraints (MUST, SHOULD, MAY)
-- **Examples and troubleshooting** for reliable execution
-- **Multi-modal distribution** (MCP tools, Anthropic Skills, Python modules)
+## Tech Stack
 
-### Example SOP Structure
+| Layer | Choice |
+|---|---|
+| Language | Python 3.10 |
+| LLM | OpenAI GPT-4o-mini via LangChain |
+| Database | SQLite (stdlib `sqlite3`) |
+| UI | Gradio `ChatInterface` |
+| Tracing | LangSmith |
+| Dependency mgmt | pipenv |
+| Testing | pytest + pytest-mock |
 
-```markdown
-# Code Assist
+---
 
-## Overview
-This SOP guides the implementation of code tasks using test-driven development 
-principles, following a structured Explore, Plan, Code, Commit workflow.
-
-## Parameters
-- **task_description** (required): Description of the task to be implemented
-- **mode** (optional, default: "interactive"): "interactive" or "fsc" (Full Self-Coding)
-
-## Steps
-### 1. Setup
-Initialize the project environment and create necessary directory structures.
-
-**Constraints:**
-- You MUST validate and create the documentation directory structure
-- You MUST discover existing instruction files using find commands
-- You MUST NOT proceed if directory creation fails
-
-### 2. Explore Phase
-[Additional steps with specific constraints...]
-```
-
-## Available SOPs
-
-| SOP | Purpose | Use Cases |
-|-----|---------|-----------|
-| **[codebase-summary](agent-sops/codebase-summary.sop.md)** | Comprehensive codebase analysis and documentation generation | Project onboarding, documentation creation, system understanding |
-| **[pdd](agent-sops/pdd.sop.md)** | Prompt-driven development methodology | Complex problem solving, architectural decisions, system design |
-| **[code-task-generator](agent-sops/code-task-generator.sop.md)** | Intelligent task breakdown and planning from requirements | Project planning, sprint preparation, requirement analysis |
-| **[code-assist](agent-sops/code-assist.sop.md)** | TDD-based code implementation with structured workflow | Feature development, bug fixes, refactoring |
-| **[eval](agent-sops/eval.sop.md)** | Automated evaluation workflow for AI agents using [Strands Evals SDK](https://github.com/strands-agents/evals) | Evaluation planning, test data generation, evaluation execution, and result analysis ([usage guide](https://strandsagents.com/latest/documentation/docs/user-guide/evals-sdk/eval-sop/)) |
-
-## Directory Structure
-
-The Prompt-Driven Development (PDD) family of SOPs (`codebase-summary`, `pdd`, `code-task-generator`, `code-assist`) write their artifacts to a `.agents/` directory with this default organizational structure:
+## Project Structure
 
 ```
-.agents/
-├── summary/               # codebase-summary output (always commit)
-│   └── *.md
-├── planning/              # pdd output (often worth committing)
-│   └── {project_name}/
-│       ├── rough-idea.md
-│       ├── idea-honing.md
-│       ├── research/
-│       ├── design/
-│       └── implementation/
-├── tasks/                 # code-task-generator output (optionally commit)
-│   └── {project_name}/
-│       └── step01/
-│           └── task-*.code-task.md
-└── scratchpad/            # code-assist working files (add to .gitignore)
-    └── {project_name}/
-        └── {task_name}/
-```
-
-**Why this structure?**
-
-The hierarchy is organized by what you're likely to want to commit:
-
-1. **`summary/`** - Documentation from `codebase-summary`. Useful for both humans and agents. Recommend always committing.
-2. **`planning/`** - Design docs from `pdd`. Captures decisions, alternatives considered, and rationale that tend to be lost in traditional software development. Often worth committing.
-3. **`tasks/`** - Code tasks from `code-task-generator`. May be committed or tracked in an issue tracker instead.
-4. **`scratchpad/`** - Working notes from `code-assist`. Transient implementation artifacts. Add to `.gitignore`.
-
-**Note:** When project names are auto-generated, they are prefixed with the current date (YYYY-MM-DD) for easy identification and sorting (e.g., `2026-01-30-auth-system`).
-
-This separation also enables you to focus your AI tools' context on useful reference docs. For example, in Kiro CLI, you can "pin" relevant files in the planning folder while implementing a project:
-```
-/context add .agents/planning/{project_name}/**/*.md
-```
-
-## Quick Start
-
-Install the `strands-agents-sops` package:
-
-```bash
-# Using Homebrew
-brew install strands-agents-sops
-
-# Or using pip
-pip install strands-agents-sops
-```
-
-### Using with Strands Agents
-
-Install strands agents and the sops package:
-
-```bash
-brew install strands-agents-sops
-pip install strands-agents strands-agents-tools
-```
-
-> **Note:** See [Quick Start](#quick-start) above for pip installation of `strands-agents-sops`.
-
-Create a simple cli coding agent:
-
-```python
-from strands import Agent
-from strands_tools import editor, shell
-from strands_agents_sops import code_assist
-
-agent = Agent(
-  system_prompt=code_assist,
-  tools=[editor, shell]
-)
-
-agent("Start code-assist sop")
-
-while(True):
-  agent(input("\nInput: "))
-```
-
-### Using as MCP Server
-
-The MCP (Model Context Protocol) server exposes SOPs as prompts that AI assistants can discover and use on-demand.
-
-Some MCP clients start this command for you from their MCP configuration. For example, in Kiro CLI you usually add `strands-agents-sops mcp` to `~/.kiro/settings/mcp.json` and let Kiro launch it automatically instead of starting a separate terminal process yourself.
-
-The underlying server command is:
-
-```bash
-# Install the package (see Quick Start for pip alternative)
-brew install strands-agents-sops
-
-# Start MCP server with built-in SOPs only
-strands-agents-sops mcp
-
-# Load external SOPs from custom directories (sops in path must have `.sop.md` postfix)
-strands-agents-sops mcp --sop-paths ~/my-sops:/path/to/other-sops
-
-# External SOPs override built-in SOPs with same name
-strands-agents-sops mcp --sop-paths ~/custom-sops  # Your custom code-assist.sop.md overrides built-in
-```
-
-#### Kiro CLI Setup
-
-To use Agent SOPs in Kiro CLI, add the MCP server to your Kiro config.
-
-For built-in SOPs only:
-
-```json
-{
-  "mcpServers": {
-    "agent-sops": {
-      "command": "strands-agents-sops",
-      "args": ["mcp"],
-      "env": {}
-    }
-  }
-}
-```
-
-To include external SOPs, add `--sop-paths` to the same config:
-
-```json
-{
-  "mcpServers": {
-    "agent-sops": {
-      "command": "strands-agents-sops",
-      "args": ["mcp", "--sop-paths", "~/my-sops"],
-      "env": {}
-    }
-  }
-}
-```
-
-The `agent-sops` key is just an example label for the MCP server. You can use a different name if you prefer.
-
-After updating `~/.kiro/settings/mcp.json`, restart Kiro CLI or reload MCP servers. Kiro will launch `strands-agents-sops mcp` for you, so you do not need to run it manually in another terminal.
-
-#### Using SOPs in Different AI Tools
-
-The syntax for invoking MCP prompts varies between AI tools:
-
-**Kiro:**
-```
-@codebase-summary
-```
-
-**Claude Code:**
-```
-/strands-agents-sops:codebase-summary
-```
-
-
-
-#### External SOP Loading
-
-The `--sop-paths` argument allows you to extend the MCP server with your own SOPs:
-
-- **File format**: Only files with `.sop.md` postfix are recognized as SOPs
-- **Colon-separated paths**: `~/sops1:/absolute/path:relative/path`
-- **Path expansion**: Supports `~` (home directory) and relative paths
-- **First-wins precedence**: External SOPs override built-in SOPs with same name
-- **Graceful error handling**: Invalid paths or malformed SOPs are skipped with warnings
-
-**Example workflow:**
-```bash
-# Create your custom SOP
-mkdir ~/my-sops
-cat > ~/my-sops/custom-workflow.sop.md << 'EOF'
-# Custom Workflow
-## Overview
-My custom workflow for specific tasks.
-## Steps
-### 1. Custom Step
-Do something custom.
-EOF
-
-# Use your custom SOPs with the MCP server command
-strands-agents-sops mcp --sop-paths ~/my-sops
-```
-
-If your MCP client manages servers through configuration, use the same arguments there instead of starting the command manually. For example, in Kiro CLI this goes in `~/.kiro/settings/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "agent-sops": {
-      "command": "strands-agents-sops",
-      "args": ["mcp", "--sop-paths", "~/my-sops"],
-      "env": {}
-    }
-  }
-}
+store_assistant/
+├── agent/
+│   ├── agent.py        # LangChain agent + chat() + termination logic
+│   ├── prompts.py      # System prompt with OFF_TOPIC / FAREWELL sentinels
+│   ├── session.py      # SessionState dataclass
+│   ├── summary.py      # LLM-generated summary + DB persistence
+│   ├── tools.py        # save_store and retrieve_store LangChain tools
+│   └── utils.py        # Phone validation and normalization
+├── db/
+│   └── database.py     # SQLite schema, upsert_store, get_store, save_summary
+├── ui/
+│   └── app.py          # Gradio ChatInterface
+├── tests/              # 50 tests across 7 test files
+└── config.py           # Loads .env, validates required keys, sets LangSmith env vars
+main.py                 # Entry point — launches Gradio on port 7860
 ```
 
 ---
 
-## Cursor IDE Integration
+## Setup
 
-Agent SOPs can be converted to Cursor commands, allowing you to execute workflows directly within Cursor IDE using the `/` command prefix.
-
-### Understanding Cursor Rules vs Commands
-
-- **Rules** (`.cursor/rules`): Provide persistent, system-level guidance that's automatically applied. Rules are static and don't support parameters.
-- **Commands** (`.cursor/commands`): Reusable workflows triggered with `/` prefix. Commands can prompt users for input, making them ideal for parameterized SOPs.
-
-Since Agent SOPs are parameterized workflows that need user input, they're best implemented as **Commands** rather than Rules.
-
-### Converting SOPs to Cursor Commands
-
-Each Agent SOP can be automatically converted to Cursor command format:
+### 1. Clone the repo
 
 ```bash
-# Generate Cursor commands from built-in SOPs (default output: .cursor/commands)
-strands-agents-sops commands --type cursor
-
-# Or specify custom output directory
-strands-agents-sops commands --type cursor --output-dir .cursor/commands
-
-# Load external SOPs from custom directories
-strands-agents-sops commands --type cursor --sop-paths ~/my-sops:/path/to/other-sops
-
-# External SOPs override built-in SOPs with same name
-strands-agents-sops commands --type cursor --sop-paths ~/custom-sops --output-dir .cursor/commands
+git clone https://github.com/roy203/Store_Assistant.git
+cd Store_Assistant
 ```
 
-#### External SOP Loading
+### 2. Install dependencies
 
-The `--sop-paths` argument allows you to extend commands generation with your own SOPs:
-
-- **File format**: Only files with `.sop.md` postfix are recognized as SOPs
-- **Colon-separated paths**: `~/sops1:/absolute/path:relative/path`
-- **Path expansion**: Supports `~` (home directory) and relative paths
-- **First-wins precedence**: External SOPs override built-in SOPs with same name
-- **Graceful error handling**: Invalid paths or malformed SOPs are skipped with warnings
-
-**Example workflow:**
 ```bash
-# Create your custom SOP
-mkdir ~/my-sops
-cat > ~/my-sops/custom-workflow.sop.md << 'EOF'
-# Custom Workflow
-## Overview
-My custom workflow for specific tasks.
-## Parameters
-- **task** (required): Description of task
-## Steps
-### 1. Custom Step
-Do something custom.
-EOF
-
-# Generate Cursor commands with your custom SOPs
-strands-agents-sops commands --type cursor --sop-paths ~/my-sops
+pip install pipenv      # if not already installed
+pipenv install
 ```
 
-This creates command files in `.cursor/commands/`:
-```
-.cursor/commands/
-├── code-assist.sop.md
-├── codebase-summary.sop.md
-├── code-task-generator.sop.md
-├── pdd.sop.md
-└── custom-workflow.sop.md
+### 3. Configure environment
+
+```bash
+cp .env.example .env
 ```
 
-### Using Commands in Cursor
+Edit `.env` and fill in your values:
 
-1. **Generate commands**: Run `strands-agents-sops commands --type cursor` in your project root
-2. **Execute workflows**: In Cursor chat, type `/` followed by the command name (e.g., `/code-assist.sop`)
-3. **Provide parameters**: When prompted, provide the required parameters for the workflow
-
-**Example:**
 ```
-You: /code-assist.sop
-
-AI: I'll help you implement code using the code-assist workflow. 
-    Please provide the following required parameters:
-    - task_description: [description of the task]
-    - mode (optional, default: "auto"): "interactive" or "auto"
-    
-You: task_description: "Create a user authentication system"
-     mode: "interactive"
+OPENAI_API_KEY=sk-...
+LANGCHAIN_API_KEY=ls__...        # from smith.langchain.com
+LANGCHAIN_PROJECT=store-assistant
+LANGCHAIN_TRACING_V2=true
+STORE_LOOKUP_PASSPHRASE=secret123
+STORE_DB_PATH=store_assistant.db
 ```
 
-### Command Format
+### 4. Run the app
 
-Each generated command includes:
-- Clear usage instructions
-- Parameter documentation (required and optional)
-- Full SOP content for execution
+```bash
+pipenv run python main.py
+```
 
-The commands handle parameters by prompting users when executed, since Cursor doesn't support explicit parameter passing. The SOP's "Constraints for parameter acquisition" section guides this interaction.
-
-### Parameter Handling
-
-Since Cursor commands don't support explicit parameters, the generated commands include instructions to prompt users for required inputs. The AI assistant will:
-1. Read the command file when you type `/command-name`
-2. Identify required and optional parameters from the SOP
-3. Prompt you for all required parameters upfront
-4. Execute the workflow with the provided parameters
-
-This approach maintains the parameterized nature of SOPs while working within Cursor's command system.
+Open **http://localhost:7860** in your browser.
 
 ---
 
-## Anthropic Skills Integration
+## Usage
 
-Agent SOPs are fully compatible with Claude's [Skills system](https://support.claude.com/en/articles/12512176-what-are-skills), allowing you to teach Claude specialized workflows that can be reused across conversations and projects.
+| Goal | What to say |
+|---|---|
+| Save a store | `Save Walmart, phone 555-123-4567` |
+| Look up a store | `What's the phone for Walmart?` — then provide the passphrase when prompted |
+| End the session | `I'm done` or `I'm good` |
 
-### How SOPs Work as Skills
-
-The key value of using SOPs as Skills is **progressive disclosure of context**. Instead of loading all workflow instructions into Claude's context upfront, you can provide many SOP skills to Claude, and Claude will intelligently decide which ones to load and execute based on the task at hand.
-
-This approach offers several advantages:
-
-- **Context Efficiency**: Only relevant workflow instructions are loaded when needed
-- **Scalable Expertise**: Provide dozens of specialized workflows without overwhelming the context
-- **Intelligent Selection**: Claude automatically chooses the most appropriate SOP for each task
-- **Dynamic Loading**: Complex workflows are only activated when Claude determines they're useful
-
-For example, you might provide Claude with all Agent SOPs as skills. When asked to "implement user authentication," Claude would automatically select and load the `code-assist` skill. When asked to "document this codebase," it would choose the `codebase-summary` skill instead.
-
-### Converting SOPs to Skills
-
-Each Agent SOP can be automatically converted to Anthropic's Skills format:
-
-```bash
-# Generate Skills format from built-in SOPs only
-strands-agents-sops skills
-
-# Or specify custom output directory
-strands-agents-sops skills --output-dir my-skills
-
-# Load external SOPs from custom directories
-strands-agents-sops skills --sop-paths ~/my-sops:/path/to/other-sops
-
-# External SOPs override built-in SOPs with same name
-strands-agents-sops skills --sop-paths ~/custom-sops --output-dir ./skills
-```
-
-#### External SOP Loading
-
-The `--sop-paths` argument allows you to extend skills generation with your own SOPs:
-
-- **File format**: Only files with `.sop.md` postfix are recognized as SOPs
-- **Colon-separated paths**: `~/sops1:/absolute/path:relative/path`
-- **Path expansion**: Supports `~` (home directory) and relative paths
-- **First-wins precedence**: External SOPs override built-in SOPs with same name
-- **Graceful error handling**: Invalid paths or malformed SOPs are skipped with warnings
-
-**Example workflow:**
-```bash
-# Create your custom SOP
-mkdir ~/my-sops
-cat > ~/my-sops/custom-workflow.sop.md << 'EOF'
-# Custom Workflow
-## Overview
-My custom workflow for specific tasks.
-## Steps
-### 1. Custom Step
-Do something custom.
-EOF
-
-# Generate skills with your custom SOPs
-strands-agents-sops skills --sop-paths ~/my-sops --output-dir ./skills
-```
-
-This creates individual skill directories:
-```
-skills/
-├── code-assist/
-│   └── SKILL.md
-├── codebase-summary/
-│   └── SKILL.md
-├── code-task-generator/
-│   └── SKILL.md
-└── pdd/
-    └── SKILL.md
-```
-
-### Using Skills in Claude
-
-#### Claude.ai
-1. Navigate to your Claude.ai account
-2. Go to Skills settings
-3. Upload the generated `SKILL.md` files
-4. Reference skills in conversations: "Use the code-assist skill to implement user authentication"
-
-#### Claude API
-```python
-# Upload skill via API
-skill_content = open('skills/code-assist/SKILL.md').read()
-skill = client.skills.create(
-    name="code-assist",
-    content=skill_content
-)
-
-# Use skill in conversation
-response = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
-    skills=[skill.id],
-    messages=[{
-        "role": "user", 
-        "content": "Use the code-assist skill to implement a user authentication system"
-    }]
-)
-```
-
-#### Claude Code
-
-**Install via Vercel Skills CLI**
-
-```bash
-npx skills add https://github.com/strands-agents/agent-sop/tree/skills-dist
-```
-
-**Install via marketplace**
-
-```bash
-# Add the marketplace
-claude plugin marketplace add strands-agents/agent-sop
-
-# Install all agent SOPs
-claude plugin install agent-sops@agent-sop
-
-# Skills available as /code-assist, /pdd, /codebase-summary, /code-task-generator, /eval, /agent-sop-author
-```
-
-The skills are automatically generated and published to the `skills-dist` branch on each GitHub Release (and can be republished manually via workflow dispatch).
-
-**For Development:**
-
-If you want to use local skills for development or testing:
-
-```bash
-# Clone the repo
-git clone https://github.com/strands-agents/agent-sop
-
-# Generate local skills
-cd agent-sop
-pip install strands-agents-sops
-strands-agents-sops skills --output-dir ./skills
-
-# Run Claude Code with the plugin
-claude --plugin-dir ./agent-sop
-```
-
-### Skill Format
-
-Each generated skill includes proper frontmatter and instructions:
-
-```markdown
----
-name: code-assist
-description: TDD-based code implementation with structured Explore, Plan, Code, Commit workflow
----
-
-# Code Assist
-
-This skill guides the implementation of code tasks using test-driven development 
-principles, following a structured workflow that balances automation with user 
-collaboration while adhering to existing package patterns.
-
-[Full SOP instructions follow...]
-```
+**Lookup passphrase:** set via `STORE_LOOKUP_PASSPHRASE` in your `.env`
 
 ---
 
-## What Are Agent SOPs?
-
-Agent SOPs use a standardized markdown format with key features that enable repeatable and understandable behavior from AI agents:
-
-1. **Structured steps with [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119) constraints** - Each workflow step uses [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119) keywords like MUST, SHOULD, and MAY to provide precise control over agent behavior without rigid scripting, ensuring reliable execution while preserving the agent's reasoning ability.
-2. **Parameterized inputs** - Rather than hardcoding specific values, SOPs accept parameters that customize behavior for different projects, teams, or requirements. This transforms single-use prompts into flexible templates that can be applied broadly while maintaining consistency.
-3. **Easy authoring through AI assistance** - Teams can create new SOPs in minutes. Coding agents can read the SOP format specification and generate new workflows based on natural language descriptions, making the creation process accessible to anyone regardless of prompt engineering expertise.
-4. **Progress tracking and resumability** - Agent SOPs can instruct agents to document their progress as they work, making it easy to understand what's happening and resume if something breaks. This transparency was crucial for debugging prompts and building developer trust in AI automation.
-
-
-## Creating Agent SOPs
-
-Agent SOPs can be authored in minutes simply by chatting with your favorite AI agent.
-
-### Authoring with the Agent SOP Author Skill
-
-The recommended way to create Agent SOPs is using the `agent-sop-author` skill, which guides agents through the full authoring workflow including validation:
+## Running Tests
 
 ```bash
-# Install via Vercel Skills CLI
-npx skills add https://github.com/strands-agents/agent-sop/tree/skills-dist
-
-# Or install via Claude Code marketplace
-claude plugin marketplace add strands-agents/agent-sop
-claude plugin install agent-sops@agent-sop
+pipenv run pytest store_assistant/tests/ -v
 ```
 
-Once installed, ask your agent to create a new SOP and it will use the skill to guide the process.
+50 tests covering:
+- Config loading and missing-key validation
+- SQLite schema, upsert (case-insensitive), summary persistence
+- Phone number validation (6 formats) and normalization
+- Passphrase gating (correct / wrong / store not found)
+- Agent `chat()` history management and LangChain message conversion
+- Off-topic 3-strike termination and farewell detection
+- Summary generation and DB write on session end
 
-### Authoring with the Format Rule
+---
 
-Alternatively, you can author SOPs using the standard formatting rule. You can either copy the rule directly from this repo or use `strands-agents-sops rule`:
+## LangSmith Tracing
 
-```bash
-# Output the Agent SOP format rule
-strands-agents-sops rule
+All LLM calls are automatically traced to your LangSmith project.  
+View traces at **https://smith.langchain.com** → project `store-assistant`.
+
+---
+
+## Database Schema
+
+```sql
+CREATE TABLE stores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    phone TEXT NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE conversation_summaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    summary_text TEXT NOT NULL,
+    stores_saved INTEGER,
+    stores_retrieved INTEGER,
+    session_start TIMESTAMP,
+    session_end TIMESTAMP,
+    duration_seconds REAL,
+    created_at TIMESTAMP
+);
 ```
-
-The rule can be used in various AI coding agents:
-
-1. **Kiro** - Copy into your home directory or project as `.kiro/steering/agent-sop-format.md`.
-2. **Amazon Q Developer** - Copy into your project as `.amazonq/rules/agent-sop-format.md`.
-3. **Claude Code** - Instruct Claude Code to read the rule file.
-4. **Cursor** - Copy into your project as `.cursor/rules/agent-sop-format.mdc` (Note the `.mdc` file extension).
-5. **Cline** - Copy into your project as `.clinerules/agent-sop-format.md`.
-
-### Basic Structure
-
-```markdown
-# SOP Name
-
-## Overview
-Brief description of what this SOP accomplishes and when to use it.
-
-## Parameters
-- **required_param** (required): Description of required input
-- **optional_param** (optional, default: value): Description with default
-
-## Steps
-### 1. Step Name
-Description of what this step accomplishes.
-
-**Constraints:**
-- You MUST perform required actions
-- You SHOULD follow recommended practices
-- You MAY include optional enhancements
-
-## Examples
-Concrete usage examples showing input and expected outcomes.
-
-## Troubleshooting
-Common issues and their solutions.
-```
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
