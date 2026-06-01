@@ -14,5 +14,5 @@ gradio = ">=4.0,<6.0"
 python-dotenv = ">=1.0,<2.0"
 
 [dev-packages]
-pytest = ">=8.0,<9.0"
+pytest = ">=9.0.3,<10.0"
 pytest-mock = ">=3.12,<4.0"
